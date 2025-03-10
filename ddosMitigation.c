@@ -16,9 +16,12 @@ MODULE_DESCRIPTION("Netfilter LKM to mitigate ICMP ping flood attacks");
 // Netfilter hook structure
 static struct nf_hook_ops nfho;
 static unsigned int icmp_rate_limit = 100;  // 100 pings per second allowed
+static unsigned int max_packet_size = 1472; // max ICMP packet size: MTU of 1500 bytes - 28 bytes   
 					    
 module_param(icmp_rate_limit, uint, 0644);
 MODULE_PARM_DESC(icmp_rate_limit, "ICMP Echo Request rate limit per second");
+module_param(max_packet_size, uint, 0644);
+MODULE_PARM_DESC(max_packet_size, "Maximum allowed ICMP packet size in bytes");
 
 // State for rate limiting
 // Atomic vars are used here to prevent race conditions
@@ -30,6 +33,7 @@ static unsigned int block_icmp_ping(void *priv, struct sk_buff *skb,
                                     const struct nf_hook_state *state) {
     struct iphdr *ip_header;
     struct icmphdr *icmp_header;
+    unsigned int packet_size;
 
     // tracking current time and time of the last accepted packet
     unsigned long current_jiffies, last_jiffies;
@@ -52,6 +56,15 @@ static unsigned int block_icmp_ping(void *priv, struct sk_buff *skb,
 
         // Check for ICMP request
         if (icmp_header->type == ICMP_ECHO) {
+		// Getting a packet size from IP header 
+		packet_size = ntohs(ip_header->tot_len);
+		
+		// check for size of the packet
+		if (packet_size > max_packet_size) {
+		       printk(KERN_INFO "TOO LARGE: Dropping a packet from %pI4 (size=%u)\n", &ip_header->saddr, packet_size);
+		       return NF_DROP;
+		}
+
 		// jiffies are stored into a local variable
 		current_jiffies = jiffies;
 		// Read last_time_jiffies and store into a local var
