@@ -2,7 +2,61 @@ This project was completed as part of the NW Stack Implementation module, focusi
 
 The primary goal was to detect and mitigate ICMP flood attacks, which is done by rate and size of packets limiting.
 
-<h1>Building a Linux Kernel Module</h1>
+<h1>Features</h1>
+
+1) Detects and blocks ICMP flood attacks
+2) Rate limiting: configurable threshold (default: 100 pings per second)
+3) Packet size filtering: drops oversized ICMP packets
+4) Implemented as a Linux Kernel Module using Netfilter hooks
+5) Atomic operations to prevent race conditions
+6) Detailed logging of blocked attacks
+
+<h1>Requirements</h1>
+
+1) Linux system (tested on Raspberry Pi 4 with ARM x64 processor)
+2) Linux kernel headers
+3) GCC compiler
+4) Make utility
+5) Root privileges to load the kernel module
+
+<h1>Installation and building</h1>
+
+Clone the repository:
+````
+git clone https://github.com/heroisaprinciple/ddosMitigation.git
+cd ddosMitigation
+````
+
+Compile the kernel module:
+
+````sudo make````
+
+Load the module into the kernel:
+````
+sudo insmod ddosMitigation.ko
+````
+
+Verify the module has been loaded:
+
+````dmesg | tail````
+
+You should see the message: "ICMP flood mitigation module loaded (rate limit = 100 pings/sec)"
+
+To unload the module:
+````sudo rmmod ddosMitigation````
+
+<h1>How It Works</h1>
+The module uses Netfilter hooks to intercept network packets at the pre-routing stage (NF_INET_PRE_ROUTING). When an ICMP Echo Request (ping) packet is detected:
+
+1) The module checks if the packet size exceeds the maximum allowed size (1472 bytes)
+2) It tracks the number of ping requests per second using jiffies (kernel timer ticks)
+3) If the number of pings exceeds the rate limit, the packet is dropped
+4) All blocked attacks are logged and can be viewed using the dmesg command
+
+These settings can be modified in the source code before compilation.
+
+<h1> Details explanation of the process </h1>
+<h2>Building a Linux Kernel Module</h2>
 A LKM requires a GPL for legal reasons as well as author’s name and module description:
 
 ````
@@ -40,10 +94,7 @@ clean:
 	make -C $(KDIR) M=$(shell pwd) clean
 ````
 
-
-To load this module, user should be a root user. With `dmesg | tail -n`, the kernel logs are seen, meaning the module was loaded successfully after doing `insmod ddosMitigation.ko`, which loads the module into the kernel.
-
-<h1>Code in ddosMitigattion.c</h1>
+<h2>Code in ddosMitigattion.c</h2>
 Netfilter uses a hook system. Everytime a packet goes into the network stack, INET_PRE_ROUTING hook is triggered. After the kernel decides where to route this packet, INET_FORWARD hook is triggered. INET_POST_ROUTING is triggered when the packet leaves the linux machine. If those packets are to be processed locally, for userspace applications, hooks INET_LOCAL_IN and INET_LOCAL_OUT are triggered after INET_PRE_ROUTING and before INET_POST_ROUTING.  In my code I create an nfho structure that  will trigger the INET_PRE_ROUTING hook in ddos_icmp_init():
 
 ````
@@ -205,7 +256,7 @@ Then, load the module with ````sudo insmod ddosMitigation.lo````
 ![img](https://imgur.com/kQuAKdV.png)
 
 
-5) Test a thousand packets that are processed with maximum speed. Run ````sudo tcpdump -i any icmp```` in one terminal window to see packets flow and ````ping -f -c 1000 [ipAddr]```` in another terminal window. 
+3) Test a thousand packets that are processed with maximum speed. Run ````sudo tcpdump -i any icmp```` in one terminal window to see packets flow and ````ping -f -c 1000 [ipAddr]```` in another terminal window. 
 1000 packets would be transmitted, 628 received. In the right terminal window there would be 372 packets dropped.
 
 
