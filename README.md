@@ -214,8 +214,3 @@ Then, load the module with ````sudo insmod ddosMitigation.lo````
 
 ![img](https://imgur.com/mJXUqVR.png)
 
-
-<p>Testing the size of the packet</p>
-
-
-
