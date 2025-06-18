@@ -116,7 +116,7 @@ static int __init ddos_icmp_init(void) {
 }
 ````
 
-ddos_icmp_init(void) is not an ordinary function. It has an __init macro, meaning it will be responsible for LKM initialization. When the module is loaded, the message “ICMP flood mitigation module is loaded…” will appear (seen with `dmesg` command). The proof of that is the last screenshot in the Building an LKM section.  Here, I’ll be populating my structure. The business logic of filtering packets will be inside the block_icmp_ping() function that I’ll explain a little later. For now, I am calling it to be a hook. The field nfho.pf = PF_INET means that only IPv4 packets are to be received. The field nfho.hooknum = NF_INET_PRE_ROUTING means that block_icmp_ping() will be triggered at the pre-routing stage and nfho.priority = NF_IP_PRI_FIRST means that this hook has highest priority. 
+ddos_icmp_init(void) is not an ordinary function. It has an __init macro, meaning it will be responsible for LKM initialization. When the module is loaded, the message “ICMP flood mitigation module is loaded…” will appear (seen with `dmesg` command). Here, I’ll be populating my structure. The business logic of filtering packets will be inside the block_icmp_ping() function. For now, I am calling it to be a hook. The field nfho.pf = PF_INET means that only IPv4 packets are to be received. The field nfho.hooknum = NF_INET_PRE_ROUTING means that block_icmp_ping() will be triggered at the pre-routing stage and nfho.priority = NF_IP_PRI_FIRST means that this hook has highest priority. 
 
 ````
  nf_register_net_hook(&init_net, &nfho); basically registers this hook.  If the register was not successful, errors will be shown in kernel logs.
