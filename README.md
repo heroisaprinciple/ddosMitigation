@@ -55,7 +55,9 @@ The module uses Netfilter hooks to intercept network packets at the pre-routing 
 
 These settings can be modified in the source code before compilation.
 
-<h1> Details explanation of the process </h1>
+<h1> Explanation of the process </h1>
+<b>The full explanation is <a href="https://drive.google.com/file/d/15LVkLpkYPjWAQL1b5qMebS1_GfcpTVaB/view?usp=sharing">here</a>.</b>
+
 <h2>Building a Linux Kernel Module</h2>
 A LKM requires a GPL for legal reasons as well as author’s name and module description:
 
